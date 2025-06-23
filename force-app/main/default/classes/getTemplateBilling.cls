@@ -3,7 +3,7 @@ public with sharing class getTemplateBilling {
     public static List<OpportunityLineItem> getTemplateBilling(){
         try {
             //return [SELECT Id, Name, Product2Id, ProductCode FROM OpportunityLineItem Where OpportunityId = '006P600000L9DmjIAF' LIMIT 1];
-            return [SELECT Id, Name, Product2Id, ProductCode FROM OpportunityLineItem Where OpportunityId = '006S800000BqxSIIAZ'];
+            return [SELECT Id, Name, Product2Id, ProductCode, Quantity, UnitPrice, Buy_Price__c FROM OpportunityLineItem Where OpportunityId = '006S800000BqxSIIAZ'];
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -26,4 +26,26 @@ public with sharing class getTemplateBilling {
             throw new AuraHandledException(e.getMessage());
         }
     }
+
+    @AuraEnabled
+    public static Id createOpportunityWithProducts(Opportunity opp, List<OpportunityLineItem> lineItems) {
+        if (opp == null || lineItems == null || lineItems.isEmpty()) {
+            throw new AuraHandledException('Opportunity and Line Items are required.');
+        }
+
+        // Insert Opportunity
+        insert opp;
+
+        // Associate the Opportunity Id with each line item
+        for (OpportunityLineItem oli : lineItems) {
+            oli.OpportunityId = opp.Id;
+        }
+
+        // Insert Line Items
+        insert lineItems;
+
+        return opp.Id;
+    }
+
+    
 }

@@ -2,8 +2,18 @@ import { LightningElement, api, track } from 'lwc';
 import getTemplateBilling from '@salesforce/apex/getTemplateBilling.getTemplateBilling';
 import getOpportunityDetails from '@salesforce/apex/getTemplateBilling.getOpportunityDetails';
 import getAccountDetails from '@salesforce/apex/getTemplateBilling.getAccountDetails';
+import createOpportunityWithProducts from '@salesforce/apex/getTemplateBilling.createOpportunityWithProducts';
 
 export default class TelephoneBilling extends LightningElement {
+    @track opportunity = {
+        Name: '',
+        CloseDate: '',
+        StageName: 'Prospecting'
+    };
+
+    @track lineItems = [
+        { Product2Id: '', Quantity: 1, UnitPrice: 0 }
+    ];
     clickedButtonLabel;
     //countries = ['Andorra','Austria','Brazil','Bulgaria','Croatia','Cyprus']
     countries = [];
@@ -30,10 +40,16 @@ export default class TelephoneBilling extends LightningElement {
                     ...item,
                     Name: item.Name
                 }));
+                this.lineItems = response.map(item => ({
+                    Name: item.Name,
+                    Product2Id: item.Product2Id,
+                    Quantity: item.Quantity,
+                    UnitPrice: item.UnitPrice
+                }));
 
 
                 
-                console.log("Account ID", this.templateAccount[0].AccountId);
+                console.log('Line items loaded:', this.lineItems);
                 
                 return getAccountDetails({rId: this.templateAccount[0].AccountId});
             })
@@ -50,32 +66,6 @@ export default class TelephoneBilling extends LightningElement {
 
         console.log('connectedCallback complete');
     }
-    /*
-    connectedCallback() {
-        getOpportunityDetails().then(response=>{
-            //this.templateAccount = response;
-            this.templateAccount = response;
-            this.accountName = this.templateAccount[0].Name;
-            console.log(this.templateAccount);
-            
-            
-        }).catch(error=> {
-            console.log(error);
-        })
-        getTemplateBilling().then(response=>{
-            //this.templateAccount = response;
-            this.countries = response;
-            console.log("Countries");
-            console.log(this.countries);
-            this.removeOpName()
-        }).catch(error=> {
-            console.log(error);
-        })
-        
-
-        console.log('connectedCallback');
-    }
-    */
 
     removeOpName(){
        /*
@@ -103,7 +93,29 @@ export default class TelephoneBilling extends LightningElement {
         console.log("Clean Countries ", this.cleanCountries);
     }
 
+    handleOppChange(event) {
+        this.opportunity[event.target.name] = event.target.value;
+    }
+
+    handleProductChange(event) {
+        const index = event.target.dataset.index;
+        const field = event.target.name;
+        this.lineItems[index][field] = event.target.value;
+    }
+
     handleClick(event) {
         this.clickedButtonLabel = event.target.label;
+    }
+
+     async handleSubmit() {
+        try {
+            const result = await createOpportunityWithProducts({
+                opp: this.opportunity,
+                lineItems: this.lineItems
+            });
+            alert('Opportunity created with Id: ' + result);
+        } catch (error) {
+            console.error(error);
+        }
     }
 }

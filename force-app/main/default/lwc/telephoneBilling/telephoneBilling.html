@@ -4,72 +4,45 @@
     <h1>Account: {accountName}</h1>
     </div>
 
-     <lightning-card title="New Telephony Bill">
+    <lightning-card title="New Telephony Bill">
         <lightning-input label="Name" name="Name" onchange={handleOppChange}></lightning-input>
         <lightning-input type="date" label="Close Date" name="CloseDate" onchange={handleOppChange}></lightning-input>
-        <lightning-input label="Stage Name" name="StageName" value="Prospecting" onchange={handleOppChange}></lightning-input>
+        <lightning-input label="Stage Name" name="StageName" value="Closed Won" onchange={handleOppChange}></lightning-input>
 
-        <template for:each={lineItems} for:item="item" for:index="index">
-            <div key={index} class="slds-box slds-m-around_small">
-                <lightning-input label="Product2Id" name="Product2Id" data-index={index} onchange={handleProductChange}></lightning-input>
-                <lightning-input type="number" label="Quantity" name="Quantity" data-index={index} onchange={handleProductChange}></lightning-input>
-                <lightning-input type="number" label="Unit Price" name="UnitPrice" data-index={index} onchange={handleProductChange}></lightning-input>
-            </div>
-        </template>
-
-        <lightning-button label="Add Product" onclick={addLineItem} class="slds-m-around_small"></lightning-button>
-        <lightning-button variant="brand" label="Create Opportunity" onclick={handleSubmit}></lightning-button>
-    </lightning-card>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    <div class="row">
-        <h2 class="header">Invoice Date</h2>
-        <lightning:input type="date" name="invoice_date" label="Required date field" required="true" />
-    </div>
-
-    <div class="slds-box" style="background-color: white;">
-        <template for:each={cleanCountries} for:item="country">
-            <div key={country.Name} class="slds-section slds-is-open">
+        <template for:each={lineItems} for:item="country" for:index="index">
+            <div key={country.name} class="slds-box slds-m-around_small">
                 <h3 class="slds-section__title slds-theme_shade">
                     <span class="slds-truncate slds-p-horizontal_small" title="Section Title">{country.Name}</span>
                 </h3>
-                <div class="slds-section__content">
+                
                     <div class="slds-grid slds-wrap">
-                        <div class="slds-col slds-size_6-of-12">
-                            <div class="slds-form-element">
-                                <div class="slds-form-element__control">
-                                    <lightning-input type="number" name="Sales Price" label="Sales Price" placeholder="type here..." required=""></lightning-input>                                            
-                                </div>
-                            </div>
+                        <div class="slds-col slds-size_3-of-12">
+                
+                            <lightning-input label="Product2Id" name="Product2Id" data-index={index} onchange={handleProductChange} value={country.Product2Id}></lightning-input>           
+                
+                        </div>                                 
+                    
+                                    
+                        <div class="slds-col slds-size_3-of-12">
+                            <lightning-input type="number" label="Quantity" name="Quantity" data-index={index} onchange={handleProductChange} value={country.Quantity}></lightning-input>   
                         </div>
-                        <div class="slds-col slds-size_6-of-12">
-                            <div class="slds-form-element">
-                                <div class="slds-form-element__control">
-                                    <lightning-input type="number" name="Buy Price" label="Buy Price" placeholder="type here..." required=""></lightning-input>                              
-                                </div>
-                            </div>
+                    
+                  
+                    
+                        <div class="slds-col slds-size_3-of-12">
+                            <lightning-input type="number" name="SalesPrice__c" label="Sales Price" required="" data-index={index} onchange={handleProductChange} value={country.UnitPrice}></lightning-input>   
+                        </div>                 
+                    
+                   
+                        <div class="slds-col slds-size_3-of-12">
+                            <lightning-input type="number" name="UnitPrice" label="Buy Price" required="" data-index={index} onchange={handleProductChange}></lightning-input>  
                         </div>
                     </div>
-                </div>
+                                        
             </div>
-            
         </template>
-        <lightning-button variant="brand" label="Create" title="Create" onclick={handleClick} class="slds-m-left_x-small"></lightning-button>
-        <div class="slds-m-vertical_medium">
-            <p>The label of the button that was clicked is: <span class="slds-text-heading_small">{clickedButtonLabel}</span></p>
-        </div>
-    </div>
+        <lightning-button variant="brand" label="Create Opportunity" onclick={handleSubmit}></lightning-button>
+        
+        
+    </lightning-card>
 </template>
