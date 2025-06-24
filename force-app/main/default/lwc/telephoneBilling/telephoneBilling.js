@@ -3,17 +3,24 @@ import getTemplateBilling from '@salesforce/apex/getTemplateBilling.getTemplateB
 import getOpportunityDetails from '@salesforce/apex/getTemplateBilling.getOpportunityDetails';
 import getAccountDetails from '@salesforce/apex/getTemplateBilling.getAccountDetails';
 import createOpportunityWithProducts from '@salesforce/apex/getTemplateBilling.createOpportunityWithProducts';
+import { NavigationMixin } from 'lightning/navigation';
 
-export default class TelephoneBilling extends LightningElement {
+
+export default class TelephoneBilling extends NavigationMixin(LightningElement) {
     @track opportunity = {
         Name: '',
         CloseDate: '',
-        StageName: 'Prospecting'
+        StageName: 'Closed Won',
+        AccountId: '',
+        Type: 'Renewal',
+        ForecastCategory: 'Closed'
     };
 
     @track lineItems = [
-        { Product2Id: '', Quantity: 1, UnitPrice: 0 }
+        { Name: '', Product2Id: '', Quantity: 1, UnitPrice: 0, Buy_Price__c: 0, PricebookEntryId: '' }
     ];
+    @track isLoading = false;
+
     clickedButtonLabel;
     //countries = ['Andorra','Austria','Brazil','Bulgaria','Croatia','Cyprus']
     countries = [];
@@ -29,36 +36,59 @@ export default class TelephoneBilling extends LightningElement {
                 this.templateName = this.templateAccount[0].Name;
                 console.log('Template Account:', this.templateAccount);
                 //console.log('Account Name:', this.accountName);
+                this.opportunity.AccountId = this.templateAccount[0].AccountId;
+                
 
+               
                 // Now fetch countries only after accountName is ready
                 return getTemplateBilling();
             })
             .then(response => {
                 this.countries = response;
                // console.log("Countries:", this.countries);
-                this.countries = response.map(item => ({
+                /*this.countries = response.map(item => ({
                     ...item,
                     Name: item.Name
-                }));
-                this.lineItems = response.map(item => ({
+                }));*/
+               this.lineItems = response.map(item => ({
                     Name: item.Name,
                     Product2Id: item.Product2Id,
                     Quantity: item.Quantity,
-                    UnitPrice: item.UnitPrice
+                    UnitPrice: item.UnitPrice,
+                    PricebookEntryId: item.PricebookEntryId,
+                    OpportunityId: item.OpportunityId
                 }));
 
 
                 
-                console.log('Line items loaded:', this.lineItems);
+                //console.log('Line items loaded:', this.lineItems);
                 
                 return getAccountDetails({rId: this.templateAccount[0].AccountId});
             })
             .then(response => {
                 this.account = response;
                 console.log("Account:", this.account);
-                //console.log("Account Name:", this.account[0].Name);
+                
                 this.accountName = this.account[0].Name;
-                this.removeOpName(); // Now safe to run
+                this.opportunity.Name = this.accountName;
+                console.log('Account Name: ', this.accountName);
+                this.lineItems = this.countries.map((item,i) => {
+                    const cleanedName = item.Name.replace(this.templateAccount[0].Name + ' ', '').trim();
+                    console.log(`Cleaned Name [${i}]:`, cleanedName);
+                    
+
+                    return {
+                        Name: cleanedName,
+                        Product2Id: item.Product2Id,
+                        Quantity: item.Quantity,
+                        UnitPrice: item.UnitPrice,
+                        PricebookEntryId: item.PricebookEntryId,
+                        OpportunityId: '',
+                        Buy_Price__c: item.Buy_Price__c
+                    };
+                });
+
+
             })
             .catch(error => {
                 console.error('Error loading data:', error);
@@ -80,11 +110,13 @@ export default class TelephoneBilling extends LightningElement {
         console.log("account name : ", this.accountName);
        // console.log("account name :", this.accountName.replace("'", ""));
         this.cleanCountries = this.countries.map((item, i) => {
-                let cleanedName = item.Name.replace(this.templateName + ' ', '').trim();
+                let cleanedName = item.Name.replace(this.templateAccount[0].Name + ' ', '').trim();
                 console.log(`Cleaned [${i}]: ${cleanedName}`);
                 return {
-                    ...item,
-                    Name: cleanedName
+                    Name: cleanedName,
+                    Product2Id: item.Product2Id,
+                    Quantity: item.Quantity,
+                    UnitPrice: item.UnitPrice
                 };
             });
 
@@ -95,27 +127,48 @@ export default class TelephoneBilling extends LightningElement {
 
     handleOppChange(event) {
         this.opportunity[event.target.name] = event.target.value;
+        console.log("Changed ", event.target.name);
+        console.log("Changed Event:", event.target.value);
+        console.log("Opportunity:", this.opportunity);
     }
 
     handleProductChange(event) {
         const index = event.target.dataset.index;
         const field = event.target.name;
         this.lineItems[index][field] = event.target.value;
+        console.log("changed Event:", event.target.value);
+        console.log("Line Items:", this.lineItems);
     }
 
     handleClick(event) {
         this.clickedButtonLabel = event.target.label;
     }
 
-     async handleSubmit() {
+    async handleSubmit() {
+        this.isLoading = true; // start the spinner
+        
         try {
+            console.log("Opp :", this.opportunity);
+            console.log("lineItems :", this.lineItems);     
             const result = await createOpportunityWithProducts({
                 opp: this.opportunity,
                 lineItems: this.lineItems
             });
-            alert('Opportunity created with Id: ' + result);
+            console.log("Opp ID:", result);
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: result, // the ID returned by Apex
+                    objectApiName: 'Opportunity',
+                    actionName: 'view'
+                }
+            });
         } catch (error) {
             console.error(error);
+            
+        }
+        finally { 
+            this.isLoading = false; // stop the spinner
         }
     }
 }

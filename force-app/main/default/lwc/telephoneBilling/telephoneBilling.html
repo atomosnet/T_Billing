@@ -5,8 +5,11 @@
     </div>
 
     <lightning-card title="New Telephony Bill">
-        <lightning-input label="Name" name="Name" onchange={handleOppChange}></lightning-input>
-        <lightning-input type="date" label="Close Date" name="CloseDate" onchange={handleOppChange}></lightning-input>
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Creating bill..." size="medium"></lightning-spinner>
+        </template>
+        <lightning-input label="Name" name="Name" onchange={handleOppChange} required=""></lightning-input>
+        <lightning-input type="date" label="Close Date" name="CloseDate" onchange={handleOppChange} required=""></lightning-input>
         <lightning-input label="Stage Name" name="StageName" value="Closed Won" onchange={handleOppChange}></lightning-input>
 
         <template for:each={lineItems} for:item="country" for:index="index">
@@ -21,27 +24,23 @@
                             <lightning-input label="Product2Id" name="Product2Id" data-index={index} onchange={handleProductChange} value={country.Product2Id}></lightning-input>           
                 
                         </div>                                 
-                    
-                                    
+                                                        
                         <div class="slds-col slds-size_3-of-12">
                             <lightning-input type="number" label="Quantity" name="Quantity" data-index={index} onchange={handleProductChange} value={country.Quantity}></lightning-input>   
                         </div>
-                    
-                  
-                    
+                                         
                         <div class="slds-col slds-size_3-of-12">
-                            <lightning-input type="number" name="SalesPrice__c" label="Sales Price" required="" data-index={index} onchange={handleProductChange} value={country.UnitPrice}></lightning-input>   
-                        </div>                 
-                    
+                            <lightning-input type="number" name="UnitPrice" label="Sales Price" required="" data-index={index} onchange={handleProductChange} value={country.UnitPrice}></lightning-input>   
+                        </div>                                  
                    
                         <div class="slds-col slds-size_3-of-12">
-                            <lightning-input type="number" name="UnitPrice" label="Buy Price" required="" data-index={index} onchange={handleProductChange}></lightning-input>  
+                            <lightning-input type="number" name="Buy_Price__c" label="Buy Price" required="" data-index={index} onchange={handleProductChange}></lightning-input>  
                         </div>
                     </div>
                                         
             </div>
         </template>
-        <lightning-button variant="brand" label="Create Opportunity" onclick={handleSubmit}></lightning-button>
+        <lightning-button variant="brand" label="Create Bill" onclick={handleSubmit}></lightning-button>
         
         
     </lightning-card>

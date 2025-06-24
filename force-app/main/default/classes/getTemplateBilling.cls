@@ -3,7 +3,7 @@ public with sharing class getTemplateBilling {
     public static List<OpportunityLineItem> getTemplateBilling(){
         try {
             //return [SELECT Id, Name, Product2Id, ProductCode FROM OpportunityLineItem Where OpportunityId = '006P600000L9DmjIAF' LIMIT 1];
-            return [SELECT Id, Name, Product2Id, ProductCode, Quantity, UnitPrice, Buy_Price__c FROM OpportunityLineItem Where OpportunityId = '006S800000BqxSIIAZ'];
+            return [SELECT Id, Name, Product2Id, ProductCode, Quantity, UnitPrice, Buy_Price__c, PricebookEntryId FROM OpportunityLineItem Where OpportunityId = '006S800000BqxSIIAZ'];
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
