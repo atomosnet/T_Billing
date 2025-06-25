@@ -4,7 +4,7 @@ import getOpportunityDetails from '@salesforce/apex/getTemplateBilling.getOpport
 import getAccountDetails from '@salesforce/apex/getTemplateBilling.getAccountDetails';
 import createOpportunityWithProducts from '@salesforce/apex/getTemplateBilling.createOpportunityWithProducts';
 import { NavigationMixin } from 'lightning/navigation';
-
+import getMonth from '@salesforce/apex/getTemplateBilling.getMonth';
 
 export default class TelephoneBilling extends NavigationMixin(LightningElement) {
     @track opportunity = {
@@ -21,6 +21,14 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
     ];
     @track isLoading = false;
 
+    @track monthlySale = {
+        MonthId__c: '',
+        Opportunity__c: ''
+    }
+    @track months = [
+        { value: '', label: ''}
+    ];
+    @track selectedMonthId;
     clickedButtonLabel;
     //countries = ['Andorra','Austria','Brazil','Bulgaria','Croatia','Cyprus']
     countries = [];
@@ -29,6 +37,18 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
     account = [];
     accountName = "";
     connectedCallback() {
+        getMonth()
+            .then(response => {
+                this.months = response.map(item => ({
+                    value: item.Id,
+                    label: item.Name,
+                    
+            }));
+            this.monthlySale.MonthId__c =  this.months[0].value;
+                
+            
+        })
+            
         getOpportunityDetails()
             .then(response => {
                 this.templateAccount = response;
@@ -125,6 +145,10 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
         console.log("Clean Countries ", this.cleanCountries);
     }
 
+    handleTemplateChange(event){
+        
+    }
+
     handleOppChange(event) {
         this.opportunity[event.target.name] = event.target.value;
         console.log("Changed ", event.target.name);
@@ -144,25 +168,53 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
         this.clickedButtonLabel = event.target.label;
     }
 
+    handleMonthChange(event){
+        this.selectedMonthId = event.detail.value;
+        this.monthlySale.MonthId__c = event.detail.value;
+        console.log('Selected Month Id:', this.selectedMonthId);
+    }
+
     async handleSubmit() {
+        const allValid = [...this.template.querySelectorAll('lightning-input')]
+        .reduce((validSoFar, input) => {
+            input.reportValidity();
+            return validSoFar && input.checkValidity();
+        }, true);
+
+        if (!allValid) {
+            console.warn('Form is invalid, submission halted.');
+            return; // stop if any required field is missing
+        }
+
         this.isLoading = true; // start the spinner
         
         try {
             console.log("Opp :", this.opportunity);
-            console.log("lineItems :", this.lineItems);     
+            console.log("lineItems :", this.lineItems); 
+            console.log("MS :", this.monthlySale.MonthId__c);    
             const result = await createOpportunityWithProducts({
                 opp: this.opportunity,
-                lineItems: this.lineItems
+                lineItems: this.lineItems,
+                ms: this.monthlySale.MonthId__c
             });
-            console.log("Opp ID:", result);
-            this[NavigationMixin.Navigate]({
+            //console.log("Opp ID:", result);
+            console.log("Account ID : ", this.opportunity.AccountId)
+            /*this[NavigationMixin.Navigate]({
                 type: 'standard__recordPage',
                 attributes: {
                     recordId: result, // the ID returned by Apex
                     objectApiName: 'Opportunity',
                     actionName: 'view'
                 }
-            });
+            });*/
+            // /apex/tccxero__NewInvoice?RecordId={!Opportunity.Id}&AccountId={!Opportunity.AccountId}&MappingSetId=TCC
+            this[NavigationMixin.Navigate]({
+                    type: 'standard__webPage',
+                    attributes: {
+                        url: `/apex/tccxero__NewInvoice?RecordId=${result}&AccountId=${this.opportunity.AccountId}&MappingSetId=TCC`
+                    }
+                });
+
         } catch (error) {
             console.error(error);
             

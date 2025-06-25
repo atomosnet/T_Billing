@@ -3,7 +3,7 @@ public with sharing class getTemplateBilling {
     public static List<OpportunityLineItem> getTemplateBilling(){
         try {
             //return [SELECT Id, Name, Product2Id, ProductCode FROM OpportunityLineItem Where OpportunityId = '006P600000L9DmjIAF' LIMIT 1];
-            return [SELECT Id, Name, Product2Id, ProductCode, Quantity, UnitPrice, Buy_Price__c, PricebookEntryId FROM OpportunityLineItem Where OpportunityId = '006S800000BqxSIIAZ'];
+            return [SELECT Id, Name, Product2Id, ProductCode, Quantity, UnitPrice, Buy_Price__c, PricebookEntryId FROM OpportunityLineItem Where OpportunityId = '006P600000L9DmjIAF'];
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -12,7 +12,7 @@ public with sharing class getTemplateBilling {
     public static List<Opportunity> getOpportunityDetails(){
         try {
             //return [SELECT Id, Name, Product2Id, ProductCode FROM OpportunityLineItem Where OpportunityId = '006P600000L9DmjIAF' LIMIT 1];
-            return [SELECT Id, Name, AccountId FROM Opportunity Where Id = '006S800000BqxSIIAZ' LIMIT 1];
+            return [SELECT Id, Name, AccountId FROM Opportunity Where Id = '006P600000L9DmjIAF' LIMIT 1];
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -28,23 +28,40 @@ public with sharing class getTemplateBilling {
     }
 
     @AuraEnabled
-    public static Id createOpportunityWithProducts(Opportunity opp, List<OpportunityLineItem> lineItems) {
-        if (opp == null || lineItems == null || lineItems.isEmpty()) {
-            throw new AuraHandledException('Opportunity and Line Items are required.');
+    public static List<Month__c> getMonth(){
+        try {
+            //return [SELECT Id, Name, Product2Id, ProductCode FROM OpportunityLineItem Where OpportunityId = '006P600000L9DmjIAF' LIMIT 1];
+            return [SELECT Id, Name FROM Month__c];
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
         }
+    }
 
-        // Insert Opportunity
-        insert opp;
+    @AuraEnabled
+    public static Id createOpportunityWithProducts(Opportunity opp, List<OpportunityLineItem> lineItems, String ms) {
+        try {
+            if (opp == null || lineItems == null || ms == null || lineItems.isEmpty()) {
+                throw new AuraHandledException('Opportunity and Line Items are required.');
+            }
 
-        // Associate the Opportunity Id with each line item
-        for (OpportunityLineItem oli : lineItems) {
-            oli.OpportunityId = opp.Id;
+            // Insert Opportunity
+            insert opp;
+
+            // Associate the Opportunity Id with each line item
+            for (OpportunityLineItem oli : lineItems) {
+                oli.OpportunityId = opp.Id;
+            }
+
+            // Insert Line Items
+            insert lineItems;
+
+            MonthlySales__c monthlySale = new MonthlySales__c(MonthId__c = ms, Opportunity__c = opp.Id);
+            insert monthlySale;
+
+            return opp.Id;
+        } catch (Exception e){
+            throw new AuraHandledException(e.getMessage());
         }
-
-        // Insert Line Items
-        insert lineItems;
-
-        return opp.Id;
     }
 
     
