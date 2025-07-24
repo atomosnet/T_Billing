@@ -5,6 +5,7 @@ import getAccountDetails from '@salesforce/apex/getTemplateBilling.getAccountDet
 import createOpportunityWithProducts from '@salesforce/apex/getTemplateBilling.createOpportunityWithProducts';
 import { NavigationMixin } from 'lightning/navigation';
 import getMonth from '@salesforce/apex/getTemplateBilling.getMonth';
+import getTemplates from '@salesforce/apex/getTemplateBilling.getTemplates';
 
 export default class TelephoneBilling extends NavigationMixin(LightningElement) {
     @track opportunity = {
@@ -13,11 +14,12 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
         StageName: 'Closed Won',
         AccountId: '',
         Type: 'Renewal',
-        ForecastCategory: 'Closed'
+        ForecastCategory: 'Closed',
+        Invoice_Line_Description__c: ""
     };
 
     @track lineItems = [
-        { Name: '', Product2Id: '', Quantity: 1, UnitPrice: 0, Buy_Price__c: 0, PricebookEntryId: '' }
+        { Name: '', Product2Id: '', Quantity: 1, UnitPrice: 0, Buy_Price__c: 0, PricebookEntryId: '', Description: '' }
     ];
     @track isLoading = false;
 
@@ -28,7 +30,12 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
     @track months = [
         { value: '', label: ''}
     ];
+
+    @track templates = [
+        {value: '', label: '', AccountId: ''}
+    ]
     @track selectedMonthId;
+    @track selectedTemplateId;
     clickedButtonLabel;
     //countries = ['Andorra','Austria','Brazil','Bulgaria','Croatia','Cyprus']
     countries = [];
@@ -36,6 +43,7 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
     cleanCountries = [];
     account = [];
     accountName = "";
+    invoiceLineDescription = "";
     connectedCallback() {
         getMonth()
             .then(response => {
@@ -48,11 +56,23 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
                 
             
         })
-            
-        getOpportunityDetails()
-            .then(response => {
+
+        getTemplates()
+             .then(response => {
+                this.templates = response.map(item => ({
+                    value: item.Id,
+                    label: item.Name,
+                    AccountId : item.AccountId                    
+                }));
+            this.selectedTemplateId = this.templates[0].value;
+            console.log("Selected Template :", this.selectedTemplateId)
+                
+            return getOpportunityDetails({rId: this.selectedTemplateId});
+        }).then(response => {
                 this.templateAccount = response;
                 //this.accountName = this.templateAccount[0].AccoundId;
+                this.invoiceLineDescription = response[0].Invoice_Line_Description__c;
+                this.opportunity.Invoice_Line_Description__c = response[0].Invoice_Line_Description__c;
                 this.templateName = this.templateAccount[0].Name;
                 console.log('Template Account:', this.templateAccount);
                 //console.log('Account Name:', this.accountName);
@@ -61,7 +81,7 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
 
                
                 // Now fetch countries only after accountName is ready
-                return getTemplateBilling();
+                return getTemplateBilling({rId: this.selectedTemplateId});
             })
             .then(response => {
                 this.countries = response;
@@ -76,12 +96,13 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
                     Quantity: item.Quantity,
                     UnitPrice: item.UnitPrice,
                     PricebookEntryId: item.PricebookEntryId,
-                    OpportunityId: item.OpportunityId
+                    OpportunityId: item.OpportunityId,
+                    Description: item.Description,
                 }));
 
 
                 
-                //console.log('Line items loaded:', this.lineItems);
+                console.log('Line items loaded:', this.lineItems);
                 
                 return getAccountDetails({rId: this.templateAccount[0].AccountId});
             })
@@ -104,6 +125,7 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
                         UnitPrice: item.UnitPrice,
                         PricebookEntryId: item.PricebookEntryId,
                         OpportunityId: '',
+                        Description: item.Description,
                         Buy_Price__c: item.Buy_Price__c
                     };
                 });
@@ -146,11 +168,93 @@ export default class TelephoneBilling extends NavigationMixin(LightningElement) 
     }
 
     handleTemplateChange(event){
-        
+        this.selectedTemplateId = event.target.value;
+        console.log("Template Change:", this.selectedTemplateId);
+        this.lineItems = [
+        { Name: '', Product2Id: '', Quantity: 1, UnitPrice: 0, Buy_Price__c: 0, PricebookEntryId: '' }
+    ];
+        getOpportunityDetails({rId: this.selectedTemplateId})
+            .then(response => {
+                this.templateAccount = response;
+                this.invoiceLineDescription = response[0].Invoice_Line_Description__c;
+                //this.accountName = this.templateAccount[0].AccoundId;
+                this.templateName = this.templateAccount[0].Name;
+                console.log('Template Account:', this.templateAccount);
+                //console.log('Account Name:', this.accountName);
+                this.opportunity.AccountId = this.templateAccount[0].AccountId;
+                
+
+               
+                // Now fetch countries only after accountName is ready
+                return getTemplateBilling({rId: this.selectedTemplateId});
+            })
+            .then(response => {
+                this.countries = response;
+              
+
+                console.log("Line description :", this.invoiceLineDescription);
+                /*this.countries = response.map(item => ({
+                    ...item,
+                    Name: item.Name
+                }));*/
+               this.lineItems = response.map(item => ({
+                    Name: item.Name,
+                    Product2Id: item.Product2Id,
+                    Quantity: item.Quantity,
+                    UnitPrice: item.UnitPrice,
+                    PricebookEntryId: item.PricebookEntryId,
+                    OpportunityId: item.OpportunityId,
+                    Description: item.Description,
+                }));
+
+
+                
+                //
+                console.log('Line items loaded:', this.lineItems);
+                
+                return getAccountDetails({rId: this.templateAccount[0].AccountId});
+            })
+            .then(response => {
+                this.account = response;
+                console.log("Account:", this.account);
+                
+                this.accountName = this.account[0].Name;
+                this.opportunity.Name = this.accountName;
+                console.log('Account Name: ', this.accountName);
+                this.lineItems = this.countries.map((item,i) => {
+                    const cleanedName = item.Name.replace(this.templateAccount[0].Name + ' ', '').trim();
+                    console.log(`Cleaned Name [${i}]:`, cleanedName);
+                    
+
+                    return {
+                        Name: cleanedName,
+                        Product2Id: item.Product2Id,
+                        Quantity: item.Quantity,
+                        UnitPrice: item.UnitPrice,
+                        PricebookEntryId: item.PricebookEntryId,
+                        OpportunityId: '',
+                        Description: item.Description,
+                        Buy_Price__c: item.Buy_Price__c
+                    };
+                });
+
+
+            })
+            .catch(error => {
+                console.error('Error loading data:', error);
+            });
+
+
+
+
     }
 
     handleOppChange(event) {
         this.opportunity[event.target.name] = event.target.value;
+        if (event.target.name == "Invoice_Line_Description__c"){
+            this.templateAccount[0].Invoice_Line_Description__c = event.target.value;
+            this.opportunity.Invoice_Line_Description__c = event.target.value;
+        }
         console.log("Changed ", event.target.name);
         console.log("Changed Event:", event.target.value);
         console.log("Opportunity:", this.opportunity);
